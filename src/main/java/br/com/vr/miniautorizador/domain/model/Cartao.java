@@ -67,6 +67,9 @@ public class Cartao {
         this.saldo = this.saldo.subtract(valor);
     }
 
+    public Cartao() {
+    }
+
     public Cartao(String numero, String senha) {
         this.id = UUID.randomUUID();
         this.numero = numero;
