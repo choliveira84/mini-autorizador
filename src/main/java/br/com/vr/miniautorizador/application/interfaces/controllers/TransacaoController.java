@@ -1,4 +1,4 @@
-package br.com.vr.miniautorizador.application.interfaces.controlleres;
+package br.com.vr.miniautorizador.application.interfaces.controllers;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
