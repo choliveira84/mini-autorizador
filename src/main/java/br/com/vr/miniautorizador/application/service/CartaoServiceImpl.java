@@ -48,9 +48,11 @@ public class CartaoServiceImpl implements CartaoService {
 
         logger.debug("Requisição para criar o cartão de número {}", cartao.getNumero());
 
-        cartaoRepository.encontrarPeloNumero(cartao.getNumero()).ifPresentOrElse(
-                existingCartao -> new CartaoExistenteException(),
-                () -> cartaoRepository.criar(new Cartao(cartao.getNumero(), cartao.getSenha())));
+        if (cartaoRepository.encontrarPeloNumero(cartao.getNumero()).isPresent()) {
+            throw new CartaoExistenteException();
+        }
+
+        cartaoRepository.criar(new Cartao(cartao.getNumero(), cartao.getSenha()));
 
         return new CartaoDTO(cartao.getNumero(), cartao.getSenha());
     }
