@@ -32,12 +32,14 @@ public class CartaoServiceImpl implements CartaoService {
 
         logger.debug("Requisição para efetuar a transação para o cartão de número {}", transacao.getNumero());
 
-        cartaoRepository.encontrarPeloNumero(transacao.getNumero()).ifPresentOrElse(
-                existingCartao -> {
-                    existingCartao.subtrairSaldo(transacao.getValor());
+        Cartao cartao = cartaoRepository.encontrarPeloNumero(transacao.getNumero())
+                .orElseThrow(CartaoInexistenteException::new);
 
-                    cartaoRepository.transacionar(existingCartao);
-                }, CartaoInexistenteException::new);
+        synchronized (cartao) {
+            cartao.subtrairSaldo(transacao.getValor());
+
+            cartaoRepository.transacionar(cartao);
+        }
     }
 
     @Override
