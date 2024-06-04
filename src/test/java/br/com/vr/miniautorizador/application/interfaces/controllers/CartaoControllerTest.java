@@ -1,82 +1,89 @@
 package br.com.vr.miniautorizador.application.interfaces.controllers;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.test.web.servlet.MockMvc;
+import org.mockito.Mockito;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 
-import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import java.math.BigDecimal;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
+import br.com.vr.miniautorizador.application.dto.CartaoDTO;
 import br.com.vr.miniautorizador.application.dto.CartaoPostDTO;
 import br.com.vr.miniautorizador.application.service.CartaoService;
-import br.com.vr.miniautorizador.domain.model.Cartao;
-import br.com.vr.miniautorizador.helper.CartaoHelper;
-import br.com.vr.miniautorizador.infrastructure.persistence.CartaoRepository;
+import br.com.vr.miniautorizador.domain.exceptions.CartaoExistenteException;
+import br.com.vr.miniautorizador.domain.exceptions.CartaoInexistenteException;
 
-@WebMvcTest(controllers = CartaoController.class)
-@AutoConfigureMockMvc
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 class CartaoControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
-
-    @Autowired
-    private ObjectMapper objectMapper;
-
-    @MockBean
     private CartaoService cartaoService;
+    private CartaoController cartaoController;
 
-    @MockBean
-    private CartaoRepository cartaoRepository;
-
-    // private final CriarCartao cartaoPadraoDuplicado =
-    // CartaoHelper.criarCartaoDuplicado();
-
-    // private final CriarCartao novoCartaoCorreto = CartaoHelper.criarCartao();
-
-    // private final CriarCartao novoCartaoComAlfaNumerico =
-    // CartaoHelper.criarCartaoSaldoInsuficiente();
-
-    private final static String BASE_URL = "/cartoes";
-
-    private final static String APPLICATION_JSON = "application/json";
-
-    @Test
-    void deveRetornar201() throws Exception {
-        Cartao cartao = CartaoHelper.criarCartao();
-
-        CartaoPostDTO post = new CartaoPostDTO();
-        post.setNumero(cartao.getNumero());
-        post.setSenha(cartao.getSenha());
-
-        mockMvc.perform(post(BASE_URL)
-                .contentType(APPLICATION_JSON)
-                .accept(APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(post)))
-                .andExpect(status().isCreated());
+    @BeforeEach
+    public void setUp() {
+        cartaoService = Mockito.mock(CartaoService.class);
+        cartaoController = new CartaoController(cartaoService);
     }
 
     @Test
-    void deveRetornar422Duplicado() throws Exception {
-        Cartao cartao = CartaoHelper.criarCartao();
+    void testCriarCartao() {
+        // Given
+        CartaoPostDTO cartaoPostDTO = new CartaoPostDTO();
+        cartaoPostDTO.setNumero("1234567890");
+        cartaoPostDTO.setSenha("1234");
+        CartaoDTO cartaoDTO = new CartaoDTO("1234567890", "1234");
+        Mockito.when(cartaoService.criar(cartaoPostDTO)).thenReturn(cartaoDTO);
 
-        CartaoPostDTO post = new CartaoPostDTO();
-        post.setNumero(cartao.getNumero());
-        post.setSenha(cartao.getSenha());
+        // When
+        ResponseEntity<CartaoDTO> response = cartaoController.criarCartao(cartaoPostDTO);
 
-        // when(cartaoRepository.encontrarPeloNumero(cartao.getNumero())).thenThrow(CartaoExistenteException.class);
-        when(cartaoService.criar(post)).thenThrow(RuntimeException.class);
+        // Then
+        assertEquals(HttpStatus.CREATED, response.getStatusCode());
+        assertEquals(cartaoDTO, response.getBody());
+    }
 
-        mockMvc.perform(post(BASE_URL)
-                        .contentType(APPLICATION_JSON)
-                        .accept(APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(post)))
-                .andExpect(status().isUnprocessableEntity());
+    @Test
+    void testCriarCartaoExistente() {
+        // Given
+        CartaoPostDTO cartaoPostDTO = new CartaoPostDTO();
+        cartaoPostDTO.setNumero("1234567890");
+        cartaoPostDTO.setSenha("1234");
+        Mockito.when(cartaoService.criar(cartaoPostDTO)).thenThrow(new CartaoExistenteException());
+
+        // When
+        ResponseEntity<CartaoDTO> response = cartaoController.criarCartao(cartaoPostDTO);
+
+        // Then
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, response.getStatusCode());
+    }
+
+    @Test
+    void testObterSaldo() {
+        // Given
+        String numeroCartao = "1234567890";
+        BigDecimal saldo = BigDecimal.valueOf(500);
+        Mockito.when(cartaoService.encontrarPeloNumero(numeroCartao)).thenReturn(saldo);
+
+        // When
+        ResponseEntity<BigDecimal> response = cartaoController.obterSaldo(numeroCartao);
+
+        // Then
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(saldo, response.getBody());
+    }
+
+    @Test
+    void testObterSaldoCartaoInexistente() {
+        // Given
+        String numeroCartao = "1234567890";
+        Mockito.when(cartaoService.encontrarPeloNumero(numeroCartao)).thenThrow(new CartaoInexistenteException());
+
+        // When
+        ResponseEntity<BigDecimal> response = cartaoController.obterSaldo(numeroCartao);
+
+        // Then
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
     }
 }
