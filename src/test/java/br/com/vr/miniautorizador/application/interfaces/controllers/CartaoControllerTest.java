@@ -67,11 +67,11 @@ class CartaoControllerTest {
         Mockito.when(cartaoService.encontrarPeloNumero(numeroCartao)).thenReturn(saldo);
 
         // When
-        ResponseEntity<BigDecimal> response = cartaoController.obterSaldo(numeroCartao);
+        ResponseEntity<String> response = cartaoController.obterSaldo(numeroCartao);
 
         // Then
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals(saldo, response.getBody());
+        assertEquals(String.valueOf(saldo), response.getBody());
     }
 
     @Test
@@ -81,7 +81,7 @@ class CartaoControllerTest {
         Mockito.when(cartaoService.encontrarPeloNumero(numeroCartao)).thenThrow(new CartaoInexistenteException());
 
         // When
-        ResponseEntity<BigDecimal> response = cartaoController.obterSaldo(numeroCartao);
+        ResponseEntity<String> response = cartaoController.obterSaldo(numeroCartao);
 
         // Then
         assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
